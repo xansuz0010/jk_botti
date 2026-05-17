@@ -43,25 +43,28 @@ ssize_t sendto_hook(int socket, const void *message, size_t length, int flags,
 
 static int test_construct_jmp_basic(void)
 {
-   TEST("construct_jmp_instruction: opcode is 0xE9");
+   TEST("construct_jmp_instruction: endbr32 + jmp forward");
 
-   unsigned char buf[8];
+   unsigned char buf[BYTES_SIZE];
    memset(buf, 0, sizeof(buf));
 
-   // Place a dummy place and target at known addresses
-   // place = 0x1000, target = 0x2000
-   // relative offset = target - (place + 5) = 0x2000 - 0x1005 = 0x0FFB
    void *place = (void *)0x1000;
    void *target = (void *)0x2000;
 
    construct_jmp_instruction(buf, place, target);
 
-   ASSERT_INT(buf[0], 0xE9);
+   // endbr32: f3 0f 1e fb
+   ASSERT_INT(buf[0], 0xf3);
+   ASSERT_INT(buf[1], 0x0f);
+   ASSERT_INT(buf[2], 0x1e);
+   ASSERT_INT(buf[3], 0xfb);
+   // jmp opcode
+   ASSERT_INT(buf[4], 0xE9);
 
-   // Check relative offset
+   // Check relative offset (relative to end of the jmp instruction = place + 9)
    unsigned long offset;
-   memcpy(&offset, buf + 1, sizeof(offset));
-   unsigned long expected = (unsigned long)target - ((unsigned long)place + 5);
+   memcpy(&offset, buf + 5, sizeof(offset));
+   unsigned long expected = (unsigned long)target - ((unsigned long)place + BYTES_SIZE);
    ASSERT_TRUE(offset == expected);
 
    PASS();
@@ -72,7 +75,7 @@ static int test_construct_jmp_backward(void)
 {
    TEST("construct_jmp_instruction: backward jump offset");
 
-   unsigned char buf[8];
+   unsigned char buf[BYTES_SIZE];
    memset(buf, 0, sizeof(buf));
 
    void *place = (void *)0x2000;
@@ -80,11 +83,15 @@ static int test_construct_jmp_backward(void)
 
    construct_jmp_instruction(buf, place, target);
 
-   ASSERT_INT(buf[0], 0xE9);
+   // endbr32
+   ASSERT_INT(buf[0], 0xf3);
+   ASSERT_INT(buf[3], 0xfb);
+   // jmp opcode
+   ASSERT_INT(buf[4], 0xE9);
 
    unsigned long offset;
-   memcpy(&offset, buf + 1, sizeof(offset));
-   unsigned long expected = (unsigned long)target - ((unsigned long)place + 5);
+   memcpy(&offset, buf + 5, sizeof(offset));
+   unsigned long expected = (unsigned long)target - ((unsigned long)place + BYTES_SIZE);
    ASSERT_TRUE(offset == expected);
 
    PASS();
@@ -123,8 +130,9 @@ static int test_hook_sendto(void)
    // sendto_original should be non-null (resolved &sendto)
    ASSERT_TRUE(sendto_original != NULL);
 
-   // The first byte of sendto should now be 0xE9 (JMP)
-   ASSERT_INT(((unsigned char *)sendto_original)[0], 0xE9);
+   // The first 4 bytes of sendto should now be endbr32, then 0xE9 (JMP)
+   ASSERT_INT(((unsigned char *)sendto_original)[0], 0xf3);
+   ASSERT_INT(((unsigned char *)sendto_original)[4], 0xE9);
 
    // The old bytes should have been saved
    // We can verify by unhooking and checking restoration
