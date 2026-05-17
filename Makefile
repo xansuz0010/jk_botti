@@ -194,8 +194,11 @@ ifeq ($(VARIANT),shim)
 
 _build: $(OUTPUT)
 
-$(OUTPUT): shim.cpp | $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LINKFLAGS)
+$(OBJDIR)/shim.o: shim.cpp | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+$(OUTPUT): $(OBJDIR)/shim.o
+	$(CC) -o $@ $< $(LINKFLAGS)
 	mkdir -p addons/jk_botti/dlls
 	cp $@ addons/jk_botti/dlls/
 ifneq ($(OSTYPE),win32)
