@@ -29,14 +29,10 @@
 // Linux work, based on my "Linux code for dynamic linkents" from metamod-p
 //
 
-// 0xe9 is opcode for our function forwarder
-#define JMP_SIZE 1
-
-//pointer size on x86-32: 4 bytes
-#define PTR_SIZE sizeof(void*)
-
-//opcode + sizeof pointer
-#define BYTES_SIZE (JMP_SIZE + PTR_SIZE)
+// endbr32 (4 bytes) + jmp rel32 (5 bytes)
+#define ENDBR32_SIZE 4
+#define JMP_INSN_SIZE 5
+#define BYTES_SIZE (ENDBR32_SIZE + JMP_INSN_SIZE)
 
 typedef ssize_t (*sendto_func)(int socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len);
 
@@ -54,12 +50,16 @@ static unsigned char sendto_old_bytes[BYTES_SIZE];
 //Mutex for our protection
 static pthread_mutex_t mutex_replacement_sendto = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
-//constructs new jmp forwarder
+//constructs endbr32 + jmp forwarder
 static void construct_jmp_instruction(void *x, void *place, void *target)
 {
-   unsigned long offset = ((unsigned long)target) - (((unsigned long)place) + 5);
-   ((unsigned char *)x)[0] = 0xe9;
-   memcpy((char *)x + 1, &offset, sizeof(unsigned long));
+   unsigned char *p = (unsigned char *)x;
+   // endbr32: f3 0f 1e fb
+   p[0] = 0xf3; p[1] = 0x0f; p[2] = 0x1e; p[3] = 0xfb;
+   // jmp rel32 (offset relative to end of jmp instruction)
+   p[4] = 0xe9;
+   unsigned long offset = ((unsigned long)target) - (((unsigned long)place) + BYTES_SIZE);
+   memcpy(p + 5, &offset, sizeof(unsigned long));
 }
 
 //restores old sendto
