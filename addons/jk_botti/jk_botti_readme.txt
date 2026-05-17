@@ -1,4 +1,4 @@
-jk_botti 1.61
+jk_botti 1.62
 -------------
 
 1. Intro
@@ -10,7 +10,7 @@ jk_botti 1.61
 1. Intro
 --------------------
 
-This is 1.61 release of jk_botti, by Jussi Kivilinna <jussi.kivilinna@iki.fi>
+This is 1.62 release of jk_botti, by Jussi Kivilinna <jussi.kivilinna@iki.fi>
 You are free to use code for any of your needs.
 
 jk_botti is computer gamer for multiplayer mode of Half-Life (HLDM) and has 
@@ -66,7 +66,7 @@ Credits:
 --------------------
 2. What's new
 --------------------
-1.61:
+1.62:
  Bug fixes:
  * Fix sendto hook trampoline crash on CPUs with CET/IBT by adding endbr32
    prefix to indirect branch target (#116)
