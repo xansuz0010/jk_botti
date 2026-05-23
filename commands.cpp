@@ -68,6 +68,7 @@ extern int bot_chat_swap_percent;
 extern int bot_chat_lower_percent;
 extern qboolean b_random_color;
 extern int bot_shoot_breakables;
+extern qboolean bot_join_after_player;
 
 qboolean isFakeClientCommand = FALSE;
 int fake_arg_count;
@@ -909,6 +910,11 @@ static qboolean ProcessCommand(const int cmdtype, const printfunc_t printfunc, v
    else if (FStrEq(pcmd, "bot_skill_setup"))
    {
       ProcessBotSkillSetupCommand(cmdtype, printfunc, arg, arg1, arg2, arg3);
+      return TRUE;
+   }
+   else if (FStrEq(pcmd, "bot_join_after_player"))
+   {
+      set_bool_toggle(&bot_join_after_player, arg1, "bot_join_after_player ENABLED\n", "bot_join_after_player DISABLED\n", printfunc, arg);
       return TRUE;
    }
 

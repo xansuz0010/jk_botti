@@ -53,6 +53,7 @@ int team_balancetype = 1;
 char *team_blockedlist = NULL;
 float bot_cfg_pause_time = 0.0;
 int bot_stop = 0;
+qboolean bot_join_after_player = FALSE;
 
 // engine.cpp globals
 qboolean g_in_intermission = FALSE;
@@ -1140,6 +1141,30 @@ static int test_srv_random_color_off(void)
    return 0;
 }
 
+static int test_srv_bot_join_after_player_on(void)
+{
+   TEST("ProcessCommand: bot_join_after_player enable");
+   reset_test_state();
+   bot_join_after_player = FALSE;
+   setup_mock_argv("jk_botti", "bot_join_after_player", "1", NULL, NULL, NULL, NULL);
+   jk_botti_ServerCommand();
+   ASSERT_INT(bot_join_after_player, TRUE);
+   PASS();
+   return 0;
+}
+
+static int test_srv_bot_join_after_player_off(void)
+{
+   TEST("ProcessCommand: bot_join_after_player disable");
+   reset_test_state();
+   bot_join_after_player = TRUE;
+   setup_mock_argv("jk_botti", "bot_join_after_player", "0", NULL, NULL, NULL, NULL);
+   jk_botti_ServerCommand();
+   ASSERT_INT(bot_join_after_player, FALSE);
+   PASS();
+   return 0;
+}
+
 static int test_srv_show_waypoints_on(void)
 {
    TEST("ProcessCommand: show_waypoints enable");
@@ -2143,6 +2168,8 @@ int main(void)
    fail |= test_srv_bot_logo_percent_invalid();
    fail |= test_srv_random_color_on();
    fail |= test_srv_random_color_off();
+   fail |= test_srv_bot_join_after_player_on();
+   fail |= test_srv_bot_join_after_player_off();
    fail |= test_srv_show_waypoints_on();
    fail |= test_srv_show_waypoints_off();
    fail |= test_srv_debug_minmax_on();

@@ -90,6 +90,7 @@ int frame_count = 0;
 int randomize_bots_on_mapchange = 0;
 int debug_minmax = 0;
 int bot_shoot_breakables = 2; // 0=never, 1=always, 2=only path-blocking (default)
+qboolean bot_join_after_player = FALSE;
 
 qboolean is_team_play = FALSE;
 qboolean checked_teamplay = FALSE;
@@ -758,6 +759,22 @@ static void StartFrameManageBotCount(void)
 
       if(client_count > max_bots && bot_count > min_bots)
          UTIL_ConsolePrintf("Test UTIL_PickRandomBot(), return value: %d", UTIL_PickRandomBot());
+   }
+
+   if (bot_join_after_player)
+   {
+      int human_count = client_count - bot_count;
+      if (human_count == 0)
+      {
+         if (bot_count > 0)
+         {
+            int pick = UTIL_PickRandomBot();
+            if (pick != -1)
+               BotKick(bots[pick]);
+         }
+         bot_check_time = gpGlobals->time + 0.5;
+         return;
+      }
    }
 
    // need more clients

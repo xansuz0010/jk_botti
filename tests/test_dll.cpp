@@ -434,6 +434,10 @@ static void reset_test_state(void)
    bot_think_called = 0;
    bot_create_called = 0;
 
+   // Reset bot_join_after_player
+   extern qboolean bot_join_after_player;
+   bot_join_after_player = FALSE;
+
    // Enable deathmatch
    gpGlobals->deathmatch = 1;
    gpGlobals->time = 10.0;
@@ -2678,6 +2682,145 @@ static int test_startframe_waypoint_slow_floyds(void)
 }
 
 // ============================================================
+// StartFrame bot_join_after_player tests
+// ============================================================
+
+static int test_startframe_join_after_player_kicks_bot_no_humans(void)
+{
+   TEST("StartFrame: bot_join_after_player, no humans -> BotKick");
+
+   reset_test_state();
+   extern qboolean need_to_open_cfg;
+   need_to_open_cfg = FALSE;
+   extern int min_bots;
+   extern int max_bots;
+   extern float bot_check_time;
+   extern qboolean bot_join_after_player;
+   min_bots = 1;
+   max_bots = 5;
+   bot_check_time = 0.0;
+   bot_join_after_player = TRUE;
+
+   for (int i = 0; i < 2; i++)
+   {
+      edict_t *e = mock_alloc_edict();
+      e->v.flags = FL_CLIENT | FL_FAKECLIENT;
+      e->v.netname = (string_t)(long)"Bot";
+      e->free = 0;
+
+      int idx = ENTINDEX(e) - 1;
+      players[idx].pEdict = e;
+
+      bots[i].is_used = TRUE;
+      bots[i].pEdict = e;
+      bots[i].f_frame_accumulator = 0.0f;
+   }
+
+   bot_kick_called = 0;
+   bot_create_called = 0;
+
+   api_table.pfnStartFrame();
+
+   ASSERT_INT(bot_kick_called, 1);
+   ASSERT_INT(bot_create_called, 0);
+
+   PASS();
+   return 0;
+}
+
+static int test_startframe_join_after_player_no_create_empty_server(void)
+{
+   TEST("StartFrame: bot_join_after_player, empty server -> no create");
+
+   reset_test_state();
+   extern qboolean need_to_open_cfg;
+   need_to_open_cfg = FALSE;
+   extern int min_bots;
+   extern int max_bots;
+   extern float bot_check_time;
+   extern qboolean bot_join_after_player;
+   min_bots = 3;
+   max_bots = 5;
+   bot_check_time = 0.0;
+   bot_join_after_player = TRUE;
+
+   bot_kick_called = 0;
+   bot_create_called = 0;
+
+   api_table.pfnStartFrame();
+
+   ASSERT_INT(bot_create_called, 0);
+   ASSERT_INT(bot_kick_called, 0);
+
+   PASS();
+   return 0;
+}
+
+static int test_startframe_join_after_player_allows_add_with_human(void)
+{
+   TEST("StartFrame: bot_join_after_player, human present -> BotCreate");
+
+   reset_test_state();
+   extern qboolean need_to_open_cfg;
+   need_to_open_cfg = FALSE;
+   extern int min_bots;
+   extern int max_bots;
+   extern float bot_check_time;
+   extern qboolean bot_join_after_player;
+   min_bots = 2;
+   max_bots = 5;
+   bot_check_time = 0.0;
+   bot_join_after_player = TRUE;
+
+   {
+      edict_t *e = mock_alloc_edict();
+      e->v.flags = FL_CLIENT;
+      e->v.netname = (string_t)(long)"Human";
+      e->free = 0;
+
+      int idx = ENTINDEX(e) - 1;
+      players[idx].pEdict = e;
+   }
+
+   bot_create_called = 0;
+   bot_kick_called = 0;
+
+   api_table.pfnStartFrame();
+
+   ASSERT_INT(bot_create_called, 1);
+   ASSERT_INT(bot_kick_called, 0);
+
+   PASS();
+   return 0;
+}
+
+static int test_startframe_join_after_player_disabled_allows_bots(void)
+{
+   TEST("StartFrame: bot_join_after_player=0, no humans -> BotCreate");
+
+   reset_test_state();
+   extern qboolean need_to_open_cfg;
+   need_to_open_cfg = FALSE;
+   extern int min_bots;
+   extern int max_bots;
+   extern float bot_check_time;
+   extern qboolean bot_join_after_player;
+   min_bots = 1;
+   max_bots = 5;
+   bot_check_time = 0.0;
+   bot_join_after_player = FALSE;
+
+   bot_create_called = 0;
+
+   api_table.pfnStartFrame();
+
+   ASSERT_INT(bot_create_called, 1);
+
+   PASS();
+   return 0;
+}
+
+// ============================================================
 // main
 // ============================================================
 
@@ -2797,6 +2940,12 @@ int main(void)
    fail |= test_startframe_bot_remove();
    fail |= test_startframe_bot_no_add_no_remove();
    fail |= test_startframe_waypoint_slow_floyds();
+
+   printf("=== StartFrame bot_join_after_player tests ===\n");
+   fail |= test_startframe_join_after_player_kicks_bot_no_humans();
+   fail |= test_startframe_join_after_player_no_create_empty_server();
+   fail |= test_startframe_join_after_player_allows_add_with_human();
+   fail |= test_startframe_join_after_player_disabled_allows_bots();
 
    printf("=== Meta_Query tests ===\n");
    fail |= test_meta_query_compatible_version();
