@@ -22,6 +22,19 @@
 #include "bot_config_init.h"
 #include "bot_name_sanitize.h"
 
+// XAIBot init headers
+#include "xaibot_personality.h"
+#include "xaibot_emotion.h"
+#include "xaibot_atmosphere.h"
+#include "xaibot_banter.h"
+#include "xaibot_gameplay_profile.h"
+#include "xaibot_bridge_queue.h"
+#include "xaibot_config.h"
+#include "xaibot_language.h"
+#include "xaibot_groq_key.h"
+#include "xaibot_fallback_chat.h"
+#include "xaibot_menu.h"
+
 int number_names = 0;
 char bot_names[MAX_BOT_NAMES][BOT_NAME_LEN+1];
 
@@ -105,4 +118,17 @@ void BotNameInit( void )
 
       fclose(bot_name_fp);
    }
+
+   // Initialize XAIBot subsystems (safe, idempotent)
+   XaibotConfig_Init();
+   XaibotLanguage_Init(XaibotConfig_GetLanguage());
+   XaibotGroq_Init();
+   XaibotPersonality_Init();
+   XaibotEmotion_Init();
+   XaibotAtmos_Init();
+   XaibotBanter_Init();
+   XaibotGameplay_Init();
+   XaibotBridge_Init();
+   XaibotFallback_Init();
+   XaibotMenu_RegisterCommands();
 }
